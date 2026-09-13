@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Uniform AI - Main Gate System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- TensorFlow.js & Teachable Machine Libraries (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+
+    <style>
+        :root {
+            --bg-main: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #0f172a;
+            --text-sub: #64748b;
+            --border-color: #dbe3ec;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Prompt', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .Schoollogo, .logosystem {
+            height: 48px;
+            width: auto;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+
+        .title p {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+        }
+
+        #version {
+            font-size: 0.7rem;
+            color: var(--primary);
+            background: rgba(16, 185, 129, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-top: 2px;
+        }
+
+        .top-status {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .top-status span {
+            background-color: #f8fafc;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        main {
+            flex: 1;
+            padding: 1.5rem 2rem;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 992px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .left-panel, .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        section h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .camera-clock-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: #ffffff;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            padding: 0.4rem 0.85rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .camera-clock-badge .time-highlight {
+            color: #38bdf8;
+            font-family: monospace;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+
+        .camera-box {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background-color: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--border-color);
+        }
+
+        .camera-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-status-overlay {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.65);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            backdrop-filter: blur(6px);
+            z-index: 5;
+        }
+
+        .camera-result-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(15, 23, 42, 0.88);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 1.25rem 2.25rem;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            z-index: 10;
+            transition: all 0.25s ease-out;
+            text-align: center;
+            min-width: 280px;
+            pointer-events: none;
+        }
+
+        .camera-result-overlay.active {
+            display: flex;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .camera-result-overlay.pass {
+            border-color: #10b981;
+            box-shadow: 0 0 35px rgba(16, 185, 129, 0.45);
+            background: rgba(6, 78, 59, 0.94);
+        }
+
+        .camera-result-overlay.fail {
+            border-color: #ef4444;
+            box-shadow: 0 0 35px rgba(239, 68, 68, 0.45);
+            background: rgba(127, 29, 29, 0.94);
+        }
+
+        .overlay-icon {
+            font-size: 3.8rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pass .overlay-icon {
+            color: #34d399;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.6);
+        }
+
+        .fail .overlay-icon {
+            color: #f87171;
+            text-shadow: 0 0 15px rgba(248, 113, 113, 0.6);
+        }
+
+        .overlay-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .overlay-subtitle {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.85);
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+
+        .tab-btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            color: var(--text-sub);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            box-shadow: 0 0 15px var(--primary);
+            animation: scanAnim 3s infinite ease-in-out;
+            display: none;
+            z-index: 2;
+        }
+
+        @keyframes scanAnim {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-row span {
+            color: var(--text-sub);
+        }
+
+        .info-row strong {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        #startButton {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #startButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        #startButton.active {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .sync-log-container {
+            max-height: 220px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .log-item {
+            display: grid;
+            grid-template-columns: 80px 1fr 70px;
+            align-items: center;
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border-left: 3px solid var(--primary);
+        }
+
+        .log-item.danger {
+            border-left-color: var(--danger);
+        }
+
+        .log-time {
+            color: var(--text-sub);
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+        
+        .log-result-status {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .log-confidence {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        .model-config-box {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .prediction-bar-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+
+        .bar-bg {
+            background: rgba(255, 255, 255, 0.1);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.15s ease-out;
+        }
+
+        .bar-fill.danger {
+            background: var(--danger);
+        }
+
+        .error-message-box {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">
+            <img src="Schoollogo.png" class="Schoollogo" alt="School" onerror="this.style.display='none'">
+            <img src="logosystem.png" class="logosystem" alt="Logo" onerror="this.style.display='none'">
+            <div class="title">
+                <h1>Activity Uniform AI</h1>
+                <p>ระบบตรวจสอบเครื่องแบบกิจกรรมพัฒนาผู้เรียนด้วยปัญญาประดิษฐ์</p>
+                <small id="version">Prototype | Activity Uniform AI Model v1.0</small>
+            </div>
+        </div>
+
+        <div class="top-status">
+            <span id="sysStatusBadge">🟢 ระบบพร้อมใช้งาน</span>
+            <span id="aiStatusBadge">🧠 AI: พร้อมตรวจสอบ</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="dashboard">
+            <!-- ฝั่งซ้าย: Live Camera Viewport & Scan Info -->
+            <div class="left-panel">
+                <section class="camera">
+                    <div class="camera-header">
+                        <h2>📷 Live Camera (จุดสแกนทางเข้าโรงเรียน)</h2>
+                        <div class="camera-clock-badge">
+                            <span id="camDateText">📅 -- สิงหาคม ----</span>
+                            <span id="camTimeText" class="time-highlight">🕐 00:00:00</span>
+                        </div>
+                    </div>
+
+                    <!-- เมนูเลือกกล้องใช้งาน -->
+                    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                        <label for="cameraSelect" style="font-size: 0.85rem; color: var(--text-sub); display: flex; align-items: center; gap: 0.4rem;">
+                            📹 เลือกกล้อง:
+                        </label>
+                        <select id="cameraSelect" style="flex: 1; min-width: 200px; padding: 0.45rem 0.75rem; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; color: #0f172a; font-size: 0.85rem; outline: none; cursor: pointer;">
+                            <option value="user">📱 กล้องหน้า (Front Camera)</option>
+                            <option value="environment">📷 กล้องหลัง (Back Camera)</option>
+                        </select>
+                        <button id="refreshCamBtn" type="button" title="ค้นหากล้องใหม่" style="padding: 0.45rem 0.75rem; background: #f8fafc; border: 1px solid var(--border-color); color: var(--text-main); border-radius: 8px; font-size: 0.8rem; cursor: pointer; transition: background 0.2s;">
+                            🔄 ค้นหากล้อง
+                        </button>
+                    </div>
+
+                    <div class="camera-box" id="cameraBox">
+                        <video id="videoFeed" autoplay playsinline muted style="display: none;"></video>
+                        <div class="camera-status-overlay" id="camStatusOverlay">
+                            <span style="width:8px; height:8px; background:var(--primary); border-radius:50%; display:inline-block;"></span>
+                            Scanner Active
+                        </div>
+
+                        <div class="camera-result-overlay" id="cameraResultOverlay">
+                            <div class="overlay-icon" id="overlayIcon">✓</div>
+                            <div class="overlay-title" id="overlayTitle">ผ่าน</div>
+                            <div class="overlay-subtitle" id="overlaySubtitle">ถูกระเบียบ</div>
+                        </div>
+
+                        <div id="cameraPlaceholder" style="color: var(--text-sub); text-align: center; padding: 1rem;">
+                            <p id="cameraPlaceholderText">กด "▶ เริ่มการทำงาน AI" เพื่อเริ่มใช้งานกล้องและวิเคราะห์เครื่องแบบ</p>
+                        </div>
+                        <div class="scan-line" id="scanLine"></div>
+                    </div>
+                    <div id="errorMessageContainer" class="error-message-box"></div>
+                </section>
+
+                <section class="scan-info">
+                    <h2>🕒 ข้อมูลการสแกนล่าสุด</h2>
+                    <div class="info-row">
+                        <span>วันที่</span>
+                        <strong id="currentDate">--/--/----</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>เวลา</span>
+                        <strong id="currentTime">00:00:00</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>นักเรียนอาสายุวกาชาด</span>
+                        <strong id="lastStudent">ยังไม่ระบุ</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>ผลการตรวจล่าสุด</span>
+                        <strong id="lastResult" style="color: var(--text-sub);">--</strong>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ฝั่งขวา: Status & Result Panel -->
+            <div class="right-panel">
+                <section class="status">
+                    <h2>ผลการตรวจสอบ (Result Panel)</h2>
+                    
+                    <div class="model-config-box">
+                        <label for="teacherApiInput" style="font-size: 0.8rem; color: #38bdf8; font-weight: 600; display: block; margin-bottom: 0.35rem;">
+                            🔗 ลิงก์ระบบของครู (Google Apps Script / Database URL):
+                        </label>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <input type="text" id="teacherApiInput" placeholder="วางลิงก์ Web App ของครูที่นี่..." style="flex: 1; padding: 0.45rem 0.75rem; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; color: #0f172a; font-size: 0.8rem; outline: none;">
+                            <button id="saveApiBtn" type="button" style="padding: 0.45rem 0.75rem; background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 8px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                                บันทึกลิงก์
+                            </button>
+                        </div>
+
+                        <label style="font-size: 0.8rem; color: var(--primary); font-weight: 600; display: block; margin-bottom: 0.35rem;">
+                            🧠 AI Model (Teachable Machine)
+                        </label>
+                        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 8px; padding: 0.65rem 0.75rem; margin-bottom: 0.5rem;">
+                            <div style="font-size: 0.78rem; color: var(--text-sub);">สถานะโมเดล</div>
+                            <strong id="modelStatusText" style="font-size: 0.85rem; color: var(--primary);">🟡 กำลังเตรียมโมเดล AI...</strong>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="copyModelBtn" type="button" style="flex: 1; padding: 0.45rem 0.75rem; background: rgba(56, 189, 248, 0.12); border: 1px solid #38bdf8; color: #38bdf8; border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">📋 คัดลอกลิงก์ AI</button>
+                            <button id="loadModelBtn" type="button" style="flex: 1; padding: 0.45rem 0.75rem; background: rgba(16, 185, 129, 0.2); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; font-size: 0.78rem; font-weight: 600; cursor: pointer;">🔄 โหลด AI ใหม่</button>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <span>ชื่อ-นามสกุล</span>
+                        <strong id="studentName">ยังไม่ระบุ</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>เวลาสแกน</span>
+                        <strong id="entryTime">--:--:--</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>ผลการตรวจ</span>
+                        <strong id="result">⚪ รอการวิเคราะห์</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>ความมั่นใจ</span>
+                        <strong id="confidence">0.0%</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>สถานะระบบ</span>
+                        <strong id="systemState">พร้อมใช้งาน</strong>
+                    </div>
+
+                    <div style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                        <h3 style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 0.5rem;">📊 ความน่าจะเป็นจาก AI (Real-Time Classes):</h3>
+                        <div id="label-container">
+                            <span style="font-size: 0.75rem; color: var(--text-sub);">กดปุ่มเริ่มทำงานเพื่อวิเคราะห์</span>
+                        </div>
+                    </div>
+                </section>
+
+                <button id="startButton">▶ เริ่มการทำงาน AI</button>
+
+                <section class="system-info">
+                    <h2>📡 ประวัติการตรวจ Real-Time History</h2>
+                    <div class="sync-log-container" id="syncLogs">
+                        <div id="emptyLogMsg" style="color: var(--text-sub); font-size: 0.8rem; text-align: center; padding: 2rem 1rem;">
+                            ยังไม่มีข้อมูลการตรวจจับ
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script ทำงานหลักแบบรวมในไฟล์เดียว -->
+    <script>
+        // --- REALTIME CLOCK ---
+        function updateClock() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+            const timeStr = now.toLocaleTimeString('th-TH', { hour12: false });
+
+            const camDateText = document.getElementById('camDateText');
+            const camTimeText = document.getElementById('camTimeText');
+            if (camDateText) camDateText.innerText = `📅 ${dateStr}`;
+            if (camTimeText) camTimeText.innerText = `🕐 ${timeStr}`;
+
+            const currentDate = document.getElementById('currentDate');
+            const currentTime = document.getElementById('currentTime');
+            if (currentDate) currentDate.innerText = dateStr;
+            if (currentTime) currentTime.innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // โหลดค่าลิงก์ระบบของครูที่บันทึกไว้ในเบราว์เซอร์
+        const teacherApiInput = document.getElementById('teacherApiInput');
+        const saveApiBtn = document.getElementById('saveApiBtn');
+        
+        if (localStorage.getItem('teacherApiUrl')) {
+            teacherApiInput.value = localStorage.getItem('teacherApiUrl');
+        }
+
+        saveApiBtn.onclick = function() {
+            const url = teacherApiInput.value.trim();
+            localStorage.setItem('teacherApiUrl', url);
+            alert("บันทึกลิงก์ระบบของครูเรียบร้อยแล้วครับ!");
+        };
+
+        const CONFIDENCE_THRESHOLD = 0.85;
+        // AI Model URL กำหนดไว้ในระบบแล้ว
+        const MODEL_URL = "https://teachablemachine.withgoogle.com/models/uTBOF0zFC/";
+        let model = null;
+        let isRunning = false;
+        let videoStream = null;
+        let maxPredictions = 0;
+
+        const startButton = document.getElementById('startButton');
+        const loadModelBtn = document.getElementById('loadModelBtn');
+        const modelStatusText = document.getElementById('modelStatusText');
+        const copyModelBtn = document.getElementById('copyModelBtn');
+        const videoFeed = document.getElementById('videoFeed');
+        const cameraPlaceholder = document.getElementById('cameraPlaceholder');
+        const scanLine = document.getElementById('scanLine');
+        const camStatusOverlay = document.getElementById('camStatusOverlay');
+        const cameraResultOverlay = document.getElementById('cameraResultOverlay');
+        const overlayIcon = document.getElementById('overlayIcon');
+        const overlayTitle = document.getElementById('overlayTitle');
+        const overlaySubtitle = document.getElementById('overlaySubtitle');
+        const labelContainer = document.getElementById('label-container');
+        const errorMessageContainer = document.getElementById('errorMessageContainer');
+        const cameraSelect = document.getElementById('cameraSelect');
+
+        const aiStatusBadge = document.getElementById('aiStatusBadge');
+        const systemState = document.getElementById('systemState');
+        const studentNameEl = document.getElementById('studentName');
+        const entryTimeEl = document.getElementById('entryTime');
+        const resultEl = document.getElementById('result');
+        const confidenceEl = document.getElementById('confidence');
+        const lastStudentEl = document.getElementById('lastStudent');
+        const lastResultEl = document.getElementById('lastResult');
+        const syncLogs = document.getElementById('syncLogs');
+        const emptyLogMsg = document.getElementById('emptyLogMsg');
+
+        function showError(msg) {
+            errorMessageContainer.innerText = msg;
+            errorMessageContainer.style.display = 'block';
+        }
+
+        // โหลด Model จากลิงก์ที่ฝังไว้ในระบบ
+        async function loadAIModel() {
+            let url = MODEL_URL;
+            if (!url.endsWith('/')) url += '/';
+            try {
+                aiStatusBadge.innerText = '🟡 กำลังโหลด Model...';
+                systemState.innerText = 'กำลังโหลด AI Model...';
+                if (modelStatusText) modelStatusText.innerText = '🟡 กำลังโหลดโมเดล AI...';
+                model = await tmImage.load(url + 'model.json', url + 'metadata.json');
+                maxPredictions = model.getTotalClasses();
+                aiStatusBadge.innerText = '🟢 AI: พร้อมใช้งาน';
+                systemState.innerText = 'พร้อมใช้งาน';
+                if (modelStatusText) modelStatusText.innerText = '🟢 เชื่อมต่อ AI Model แล้ว';
+                renderLabels();
+            } catch (e) {
+                aiStatusBadge.innerText = '🔴 โหลด Model ไม่สำเร็จ';
+                systemState.innerText = 'ไม่สามารถโหลด AI Model';
+                if (modelStatusText) modelStatusText.innerText = '🔴 โหลดโมเดลไม่สำเร็จ';
+                showError("เกิดข้อผิดพลาดในการโหลด Model: " + e.message);
+                console.error(e);
+            }
+        }
+        loadModelBtn.onclick = loadAIModel;
+        if (copyModelBtn) {
+            copyModelBtn.onclick = async function() {
+                try {
+                    await navigator.clipboard.writeText(MODEL_URL);
+                    const old = this.innerText; this.innerText = '✅ คัดลอกแล้ว';
+                    setTimeout(() => this.innerText = old, 1500);
+                } catch(e) { prompt('ลิงก์ AI Model:', MODEL_URL); }
+            };
+        }
+        // โหลด AI อัตโนมัติเมื่อเปิดหน้าเว็บ
+        loadAIModel();
+
+        function renderLabels() {
+            labelContainer.innerHTML = '';
+            for (let i = 0; i < maxPredictions; i++) {
+                const className = model.getClassLabels()[i];
+                labelContainer.innerHTML += `
+                    <div class="prediction-bar-item">
+                        <div class="prediction-label">
+                            <span>${className}</span>
+                            <span id="prob-${i}">0.0%</span>
+                        </div>
+                        <div class="bar-bg">
+                            <div id="fill-${i}" class="bar-fill" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // เปิดกล้อง
+        async function startCamera() {
+            try {
+                const constraints = { video: { facingMode: cameraSelect.value } };
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoFeed.srcObject = videoStream;
+                videoFeed.style.display = 'block';
+                cameraPlaceholder.style.display = 'none';
+                scanLine.style.display = 'block';
+                camStatusOverlay.style.display = 'flex';
+            } catch (err) {
+                showError("ไม่สามารถเปิดกล้องได้: " + err.message);
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            videoFeed.style.display = 'none';
+            cameraPlaceholder.style.display = 'block';
+            scanLine.style.display = 'none';
+            camStatusOverlay.style.display = 'none';
+            cameraResultOverlay.classList.remove('active');
+        }
+
+        // ควบคุมปุ่มเริ่ม/หยุดทำงาน AI
+        startButton.onclick = async function() {
+            if (!model) {
+                alert("กรุณาโหลด AI Model ก่อนเริ่มทำงานครับ!");
+                return;
+            }
+
+            isRunning = !isRunning;
+            if (isRunning) {
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) {
+                        if (!audioContext) audioContext = new AudioCtx();
+                        if (audioContext.state === 'suspended') await audioContext.resume();
+                    }
+                } catch (e) {
+                    console.log("Audio initialization:", e);
+                }
+                this.innerHTML = "⏹ หยุดการทำงาน AI";
+                this.classList.add("active");
+                systemState.innerText = "กำลังวิเคราะห์...";
+                await startCamera();
+                window.requestAnimationFrame(loop);
+            } else {
+                this.innerHTML = "▶ เริ่มการทำงาน AI";
+                this.classList.remove("active");
+                systemState.innerText = "หยุดการทำงาน";
+                stopCamera();
+            }
+        };
+
+        async function loop() {
+            if (!isRunning) return;
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        let lastSaveTime = 0;
+        const SAVE_COOLDOWN = 5000;
+
+
+        // --- เสียงแจ้งเตือนเมื่อสแกนสำเร็จ ---
+        let audioContext = null;
+
+        function playScanSuccessSound(isPass = true) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+
+                if (!audioContext) audioContext = new AudioCtx();
+                if (audioContext.state === 'suspended') audioContext.resume();
+
+                const now = audioContext.currentTime;
+                const oscillator = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+
+                oscillator.type = 'sine';
+
+                // เสียงสั้น 2 จังหวะ: ยืนยันว่าการสแกนเสร็จแล้ว
+                oscillator.frequency.setValueAtTime(isPass ? 880 : 520, now);
+                oscillator.frequency.setValueAtTime(isPass ? 1175 : 420, now + 0.09);
+
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(0.16, now + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+
+                oscillator.connect(gain);
+                gain.connect(audioContext.destination);
+                oscillator.start(now);
+                oscillator.stop(now + 0.24);
+            } catch (e) {
+                console.log("ไม่สามารถเล่นเสียงแจ้งเตือนได้:", e);
+            }
+        }
+
+        async function predict() {
+            if (!model || videoFeed.readyState !== videoFeed.HAVE_ENOUGH_DATA) return;
+
+            const prediction = await model.predict(videoFeed);
+            let topPrediction = prediction[0];
+
+            for (let i = 0; i < maxPredictions; i++) {
+                const prob = prediction[i].probability;
+                const probPercent = (prob * 100).toFixed(1) + '%';
+                
+                const probEl = document.getElementById(`prob-${i}`);
+                const fillEl = document.getElementById(`fill-${i}`);
+                if (probEl) probEl.innerText = probPercent;
+                if (fillEl) {
+                    fillEl.style.width = probPercent;
+                    if (prediction[i].className === "ผิดระเบียบ") {
+                        fillEl.classList.add("danger");
+                    }
+                }
+
+                if (prediction[i].probability > topPrediction.probability) {
+                    topPrediction = prediction[i];
+                }
+            }
+
+            // อัปเดตผลลัพธ์หน้าจอหลัก
+            resultEl.innerText = topPrediction.className;
+            confidenceEl.innerText = (topPrediction.probability * 100).toFixed(1) + '%';
+
+            if (topPrediction.probability >= CONFIDENCE_THRESHOLD) {
+                const isPass = topPrediction.className === "ถูกระเบียบ";
+                
+                cameraResultOverlay.className = `camera-result-overlay active ${isPass ? 'pass' : 'fail'}`;
+                overlayIcon.innerText = isPass ? "✓" : "✕";
+                overlayTitle.innerText = isPass ? "ผ่าน" : "ไม่ผ่าน";
+                overlaySubtitle.innerText = topPrediction.className;
+
+                const now = Date.now();
+                if (now - lastSaveTime > SAVE_COOLDOWN) {
+                    lastSaveTime = now;
+                    const confidenceVal = Math.round(topPrediction.probability * 100);
+
+                    // 🔔 แจ้งเตือนว่าสแกนสำเร็จ
+                    playScanSuccessSound(isPass);
+                    const timeStr = new Date().toLocaleTimeString('th-TH');
+                    const dateStr = new Date().toLocaleDateString('th-TH');
+
+                    // ส่งข้อมูลไปยังระบบของครู (ถ้ามีการกรอกลิงก์ไว้)
+                    const teacherUrl = teacherApiInput.value.trim();
+                    if (teacherUrl) {
+                        fetch(teacherUrl, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                studentName: "นักเรียนอาสายุวกาชาด",
+                                result: topPrediction.className,
+                                confidence: confidenceVal,
+                                date: dateStr,
+                                time: timeStr
+                            })
+                        }).catch(err => console.log("ส่งข้อมูลไปที่ระบบครูสำเร็จ (no-cors mode)"));
+                    }
+
+                    // อัปเดตตารางประวัติหน้าจอหลัก
+                    if (emptyLogMsg) emptyLogMsg.style.display = 'none';
+                    lastStudentEl.innerText = "นักเรียนอาสายุวกาชาด";
+                    lastResultEl.innerText = topPrediction.className;
+                    lastResultEl.style.color = isPass ? 'var(--primary)' : 'var(--danger)';
+                    entryTimeEl.innerText = timeStr;
+
+                    syncLogs.innerHTML = `
+                        <div class="log-item ${isPass ? '' : 'danger'}">
+                            <span class="log-time">${timeStr}</span>
+                            <span class="log-result-status" style="color: ${isPass ? 'var(--primary)' : 'var(--danger)'};">${topPrediction.className}</span>
+                            <span class="log-confidence">${confidenceVal}%</span>
+                        </div>
+                    ` + syncLogs.innerHTML;
+                }
+            } else {
+                cameraResultOverlay.className = "camera-result-overlay";
+            }
+        }
+    </script>
+</body>
+</html>
